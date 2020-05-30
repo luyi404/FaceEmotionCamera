@@ -120,7 +120,7 @@ def evaluate_accuracy(data_iter, net, device=None):
 
 if __name__ == '__main__':  #不加这个不可以多进程读取DataSet
     DEVICE = "cuda"
-    batch_size = 2
+    batch_size = 64
     dataset_train = DataSet("./data//Train.csv", transform=TheTransform)
     dataset_vali = DataSet("./data//Val.csv", transform=TheTransform)
     DataLoader_train = torch.utils.data.DataLoader(dataset=dataset_train,
@@ -135,7 +135,7 @@ if __name__ == '__main__':  #不加这个不可以多进程读取DataSet
     # 经过3个vgg_block, 宽高会减半3次, 变成 48 / 8 = 6
     fc_features = 128 * 6 * 6  # c * w * h 128是进过VGG后的通道数
     fc_hidden_units = 1024
-    num_epochs = 10
+    num_epochs = 30
     model = VGG(conv_arch, fc_features, fc_hidden_units).to(DEVICE)
     lr = 0.001
     optimizer = optim.Adam(model.parameters(), lr=lr)

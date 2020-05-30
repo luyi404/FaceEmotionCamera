@@ -2,7 +2,7 @@ import cv2
 from Train import *
 from PIL import Image
 
-model = torch.load('./model//model65.pth').cuda()  #加载已经训练好的pytorch模型
+model = torch.load('./model//model29.pth').cuda()  #加载已经训练好的pytorch模型
 
 transforms = torchvision.transforms.Compose([
     torchvision.transforms.Grayscale(),

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision
 from tqdm import tqdm
-
+import matplotlib.pyplot as plt
 class DataSet(torch.utils.data.Dataset):
     def __init__(self, dataPath, transform=None):
         self.dataset = pd.read_csv(dataPath)
@@ -71,12 +71,15 @@ def VGG(conv_arch, fc_features, fc_hidden_units = 4096):
                                        nn.Linear(fc_hidden_units, 7))) #输出成7个感情
     return net
 
-
+Trainloss = []
+TrainAcc = []
+ValAcc = []
 def train(train_iter, test_iter, net, optimzer, device, num_epochs):
+    axis_x = range(1, num_epochs + 1) #画图用
     net = net.to(device)
     loss = nn.CrossEntropyLoss()
     batch_count = 0
-    for epoch in range(num_epochs):
+    for epoch in range(1, num_epochs + 1):
         train_loss_sum, train_acc_sum, n, start = 0.0, 0.0, 0, time.time() #计时
         for X, y in train_iter:
             X = X.to(device)
@@ -91,10 +94,20 @@ def train(train_iter, test_iter, net, optimzer, device, num_epochs):
             train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item()
             n += y.shape[0]
             batch_count += 1
-    test_acc = evaluate_accuracy(test_iter, net)
-    print('epoch {}, loss {:.4f}, train acc {:.4f}, test acc{:.4f}, time {:.2f} sec'
-          .format(epoch + 1, train_loss_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
-    torch.save(model, './model//model.pth')
+        test_acc = evaluate_accuracy(test_iter, net)
+        ValAcc.append(test_acc)
+        TrainAcc.append(train_acc_sum / n)
+        Trainloss.append(train_loss_sum / batch_count)
+        print('epoch {}, loss {:.4f}, train acc {:.4f}, test acc{:.4f}, time {:.2f} sec'
+          .format(epoch, train_loss_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+        torch.save(model, '/content/drive/My Drive/Emotion/model' + str(epoch) +".pth")
+    plt.plot(axis_x,Trainloss,label = "TrainLoss",color = "r" )
+    plt.plot(axis_x,TrainAcc,label = "TrainAcc",color = "b" )
+    plt.plot(axis_x,ValAcc,label = "ValAcc",color = "g" )
+    plt.xlabel('Epoch')
+    plt.title('Result of my train')
+    plt.legend()
+    plt.show()
 
 def evaluate_accuracy(data_iter, net, device=None):
     if device is None and isinstance(net, torch.nn.Module):
@@ -121,8 +134,8 @@ def evaluate_accuracy(data_iter, net, device=None):
 if __name__ == '__main__':  #不加这个不可以多进程读取DataSet
     DEVICE = "cuda"
     batch_size = 64
-    dataset_train = DataSet("./data//Train.csv", transform=TheTransform)
-    dataset_vali = DataSet("./data//Val.csv", transform=TheTransform)
+    dataset_train = DataSet("/content/drive/My Drive/Emotion/data2/data/Train.csv", transform=TheTransform)
+    dataset_vali = DataSet("/content/drive/My Drive/Emotion/data2/data/Val.csv", transform=TheTransform)
     DataLoader_train = torch.utils.data.DataLoader(dataset=dataset_train,
                                                     batch_size=batch_size,
                                                     shuffle=True,
@@ -131,7 +144,7 @@ if __name__ == '__main__':  #不加这个不可以多进程读取DataSet
                                                    batch_size=batch_size,
                                                    shuffle=True,
                                                    num_workers=2)
-    conv_arch = ((1, 1, 32), (1, 32, 64), (2, 64, 128))
+    conv_arch = ((2, 1, 32), (2, 32, 64), (1, 64, 128))
     # 经过3个vgg_block, 宽高会减半3次, 变成 48 / 8 = 6
     fc_features = 128 * 6 * 6  # c * w * h 128是进过VGG后的通道数
     fc_hidden_units = 1024
